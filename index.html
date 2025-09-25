@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
 <head>
+  <meta charset="UTF-8">
   <title>📸 快照控制器</title>
-  <link rel="manifest" href="manifest.json">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="manifest.json">
   <style>
     body { font-family: sans-serif; text-align: center; padding: 20px; }
     button { padding: 10px 20px; font-size: 16px; margin: 10px; }
@@ -15,7 +16,7 @@
   <h2>📸 快照控制器</h2>
   <button onclick="refreshSnapshot()">重新載入快照</button>
   <p id="timestamp">尚未拍照</p>
-  <iframe id="snapshot" src=""></iframe>
+  <iframe id="snapshot" src="" loading="lazy"></iframe>
 
   <script>
     const SNAPSHOT_URL = "https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot";
@@ -26,6 +27,10 @@
       document.getElementById("timestamp").innerText = "更新時間：" + new Date().toLocaleString();
     }
 
+    // 預設載入一次快照
+    refreshSnapshot();
+
+    // 註冊 Service Worker（PWA 安裝條件）
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js")
         .then(() => console.log("✅ Service Worker registered"))
