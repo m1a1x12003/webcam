@@ -22,16 +22,17 @@
     const SNAPSHOT_URL = "https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot";
 
     function refreshSnapshot() {
-      fetch(SNAPSHOT_URL)
-        .then(res => res.text())
-        .then(url => {
-          document.getElementById("snapshot").src = url;
-          document.getElementById("timestamp").innerText = "更新時間：" + new Date().toLocaleString();
-        })
-        .catch(err => {
-          document.getElementById("timestamp").innerText = "❌ 錯誤：" + err.message;
-        });
-    }
+  fetch("https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot")
+    .then(res => res.text())
+    .then(url => {
+      document.getElementById("snapshot").src = url;
+      document.getElementById("timestamp").innerText = "更新時間：" + new Date().toLocaleString();
+    })
+    .catch(err => {
+      document.getElementById("timestamp").innerText = "❌ 錯誤：" + err.message;
+    });
+}
+
 
     // 預設載入一次快照
     refreshSnapshot();
@@ -45,4 +46,5 @@
   </script>
 </body>
 </html>
+
 
