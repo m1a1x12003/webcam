@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>📸 到貨實況</title>
+  <title>📸 到貨快照嵌入</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="manifest" href="manifest.json">
   <style>
@@ -14,8 +14,8 @@
   </style>
 </head>
 <body>
-  <h2>📸 到貨實況</h2>
-  <button onclick="loadSnapshot()">載入快照</button>
+  <h2>📸 到貨快照嵌入</h2>
+  <button onclick="forceEmbed()">強制載入快照</button>
   <p id="timestamp">尚未載入</p>
   <iframe id="snapshotFrame" src="" loading="lazy"></iframe>
   <p id="tip">📌 若首次載入無法顯示，請點擊上方按鈕並通過 Ngrok 安全頁</p>
@@ -23,11 +23,14 @@
   <script>
     const SNAPSHOT_URL = "https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot";
 
-    function loadSnapshot() {
+    function forceEmbed() {
       const iframe = document.getElementById("snapshotFrame");
       iframe.src = SNAPSHOT_URL + "?t=" + new Date().getTime();  // 加時間戳避免快取
       document.getElementById("timestamp").innerText = "更新時間：" + new Date().toLocaleString();
     }
+
+    // 預設載入一次快照
+    forceEmbed();
 
     // 註冊 Service Worker（PWA 安裝條件）
     if ("serviceWorker" in navigator) {
