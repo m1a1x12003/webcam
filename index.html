@@ -22,16 +22,18 @@
     const SNAPSHOT_URL = "https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot";
 
     function refreshSnapshot() {
-  fetch("https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot")
+  // 第一次 fetch 拿到 .txt 檔案的網址
+  fetch("https://files.catbox.moe/abc123.txt")  // ✅ 固定網址，不經過 Ngrok
     .then(res => res.text())
-    .then(url => {
-      document.getElementById("snapshot").src = url;
+    .then(imageUrl => {
+      document.getElementById("snapshot").src = imageUrl;
       document.getElementById("timestamp").innerText = "更新時間：" + new Date().toLocaleString();
     })
     .catch(err => {
       document.getElementById("timestamp").innerText = "❌ 錯誤：" + err.message;
     });
 }
+
 
 
     // 預設載入一次快照
@@ -46,5 +48,6 @@
   </script>
 </body>
 </html>
+
 
 
