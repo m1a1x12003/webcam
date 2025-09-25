@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>📸 快照控制器</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; }
+    button { padding: 10px 20px; font-size: 16px; margin: 10px; }
+    img { width: 90%; max-width: 640px; margin-top: 10px; border: 1px solid #ccc; }
+    #timestamp { margin-top: 10px; font-size: 14px; color: #555; }
+  </style>
+</head>
+<body>
+  <h2>📸 快照控制器</h2>
+  <button onclick="refreshSnapshot()">重新載入快照</button>
+  <p id="timestamp">尚未拍照</p>
+
+  <!-- ✅ 直接嵌入 Flask 快照網址 -->
+  <img id="snapshot" src="https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot" alt="快照畫面">
+
+  <script>
+    function refreshSnapshot() {
+      const img = document.getElementById("snapshot");
+      img.src = "https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot?t=" + new Date().getTime();
+      document.getElementById("timestamp").innerText = "更新時間：" + new Date().toLocaleString();
+    }
+  </script>
+</body>
+</html>

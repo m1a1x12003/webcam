@@ -1,0 +1,10 @@
+{
+  "name": "木架快報",
+  "short_name": "木架快報",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "description": "控制伺服器快照並顯示畫面",
+  "icons": []
+}
