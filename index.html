@@ -7,18 +7,36 @@
   <link rel="manifest" href="manifest.json">
   <style>
     body { font-family: sans-serif; text-align: center; padding: 20px; }
-    button { padding: 10px 20px; font-size: 16px; margin: 10px; }
+    button, a.button-link {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+      display: inline-block;
+      text-decoration: none;
+      color: white;
+      background-color: #007bff;
+      border-radius: 5px;
+    }
     iframe { width: 90%; max-width: 640px; height: 480px; border: 1px solid #ccc; }
     #timestamp { margin-top: 10px; font-size: 14px; color: #555; }
     #tip { font-size: 13px; color: #888; margin-top: 5px; }
   </style>
 </head>
 <body>
-  <h2>📸 到貨快照嵌入</h2>
-  <button onclick="forceEmbed()">強制載入快照</button>
+  <h2>📸 到貨實況</h2>
+
+  <!-- 首次使用流程說明 -->
+  <p>🧭 <strong>首次使用請先點擊下方按鈕</strong>，開啟 Ngrok 快照網址並手動點選「Visit Site」通過安全頁。</p>
+  <a class="button-link" href="https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot" target="_blank">🔓 開啟快照網址</a>
+  <p>✅ 通過安全頁後，請回來點擊下方「載入快照」按鈕，即可嵌入畫面。</p>
+
+  <!-- 快照載入按鈕 -->
+  <button onclick="forceEmbed()">載入快照</button>
   <p id="timestamp">尚未載入</p>
+
+  <!-- 快照嵌入視窗 -->
   <iframe id="snapshotFrame" src="" loading="lazy"></iframe>
-  <p id="tip">📌 若首次載入無法顯示，請點擊上方按鈕並通過 Ngrok 安全頁</p>
+  <p id="tip">📌 若快照無法顯示，請確認已通過 Ngrok 安全頁或重新點擊上方連結</p>
 
   <script>
     const SNAPSHOT_URL = "https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot";
@@ -41,4 +59,3 @@
   </script>
 </body>
 </html>
-
