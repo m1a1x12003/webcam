@@ -24,6 +24,12 @@
       img.src = "https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot?t=" + new Date().getTime();
       document.getElementById("timestamp").innerText = "更新時間：" + new Date().toLocaleString();
     }
+      if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js")
+      .then(() => console.log("✅ Service Worker registered"))
+      .catch(err => console.error("❌ SW 註冊失敗", err));
+  }
   </script>
 </body>
 </html>
+
