@@ -1,6 +1,6 @@
 {
-  "name": "快照控制器",
-  "short_name": "快照",
+  "name": "到貨實況",
+  "short_name": "到貨實況",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -18,5 +18,6 @@
     }
   ]
 }
+
 
 
