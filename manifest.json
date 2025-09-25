@@ -1,7 +1,7 @@
 {
   "name": "快照控制器",
   "short_name": "快照",
-  "start_url": "https://aurous-johnsie-rippingly.ngrok-free.dev/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
@@ -18,4 +18,5 @@
     }
   ]
 }
+
 
