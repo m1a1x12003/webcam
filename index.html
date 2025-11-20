@@ -2,18 +2,29 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>RouteApp 測試版 B</title>
-  <style>#map { height: 80vh; width: 100%; }</style>
+  <title>RouteApp 兩種模式</title>
+  <style>
+    #map { height: 80vh; width: 100%; }
+    #error { color: red; font-weight: bold; }
+  </style>
 </head>
 <body>
-  <h1>RouteApp 測試版 B (顯示 + 跳轉)</h1>
+  <h1>RouteApp 測試 (GPS 起始 / 第一點起始)</h1>
   <textarea id="addresses" rows="5" cols="40" placeholder="每行一個地址或座標"></textarea>
   <br><br>
-  <button onclick="navigate()">最佳化路線並跳轉</button>
+  <button onclick="navigate('gps')">GPS 起始</button>
+  <button onclick="navigate('first')">第一點起始</button>
   <div id="map"></div>
+  <div id="error"></div>
 
   <script>
     let map, directionsService, directionsRenderer;
+
+    window.onerror = function(message, source, lineno, colno, error) {
+      document.getElementById("error").innerText =
+        "錯誤: " + message + " (line " + lineno + ")";
+    };
+
     function initMap() {
       map = new google.maps.Map(document.getElementById("map"), {
         zoom: 7,
@@ -23,14 +34,38 @@
       directionsRenderer = new google.maps.DirectionsRenderer({ map });
     }
 
-    function navigate() {
+    function navigate(mode) {
       const lines = document.getElementById('addresses').value.trim().split(/\n+/);
       if (lines.length < 2) { alert("請至少輸入起點和終點"); return; }
 
-      const origin = lines[0];
+      let origin;
       const destination = lines[lines.length - 1];
       const waypoints = lines.slice(1, -1).map(loc => ({ location: loc }));
 
+      if (mode === 'gps') {
+        // 使用 GPS 當起點
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(pos => {
+            origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            calcRoute(origin, destination, waypoints, lines);
+          }, err => {
+            alert("無法取得 GPS 位置，改用第一點起始");
+            origin = lines[0];
+            calcRoute(origin, destination, waypoints, lines);
+          });
+        } else {
+          alert("此裝置不支援 GPS，改用第一點起始");
+          origin = lines[0];
+          calcRoute(origin, destination, waypoints, lines);
+        }
+      } else {
+        // 使用第一點當起點
+        origin = lines[0];
+        calcRoute(origin, destination, waypoints, lines);
+      }
+    }
+
+    function calcRoute(origin, destination, waypoints, lines) {
       directionsService.route({
         origin, destination, waypoints,
         optimizeWaypoints: true,
@@ -42,12 +77,12 @@
           const order = response.routes[0].waypoint_order;
           const optimizedWaypoints = order.map(i => lines.slice(1, -1)[i]).map(encodeURIComponent).join("|");
 
-          let gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+          let gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(typeof origin === 'string' ? origin : origin.lat + ',' + origin.lng)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
           if (optimizedWaypoints) gmapUrl += `&waypoints=${optimizedWaypoints}`;
 
           window.location.href = gmapUrl; // ✅ 跳轉到 Google Maps App/網頁
         } else {
-          alert("路線規劃失敗: " + status);
+          document.getElementById("error").innerText = "路線規劃失敗: " + status;
         }
       });
     }
