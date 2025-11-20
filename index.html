@@ -1,67 +1,27 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>📸 到貨實況</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="manifest" href="manifest.json">
+  <meta charset="utf-8">
+  <title>Google Maps 測試</title>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 20px; }
-    button, a.button-link {
-      padding: 10px 20px;
-      font-size: 16px;
-      margin: 10px;
-      display: inline-block;
-      text-decoration: none;
-      color: white;
-      background-color: #007bff;
-      border-radius: 5px;
-    }
-    img { width: 90%; max-width: 640px; margin-top: 10px; border: 1px solid #ccc; }
-    #timestamp { margin-top: 10px; font-size: 14px; color: #555; }
-    #tip { font-size: 13px; color: #888; margin-top: 5px; }
-    details { margin: 10px auto; max-width: 640px; text-align: left; }
-    summary { font-size: 16px; font-weight: bold; cursor: pointer; }
-    details p, details a { font-size: 14px; margin: 5px 0; }
+    #map { height: 80vh; width: 100%; }
   </style>
 </head>
 <body>
-  <h2>📸 到貨實況</h2>
-
-  <!-- 折疊式首次使用說明 -->
-  <details>
-    <summary>🧭 首次使用請點我</summary>
-    <p>請先點擊下方按鈕，開啟 Ngrok 快照網址並手動點選「Visit Site」通過安全頁。</p>
-    <a class="button-link" href="https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot" target="_blank">🔓 開啟快照網址</a>
-    <p>通過安全頁後，請回來點擊「重新載入快照」按鈕，即可顯示畫面。</p>
-  </details>
-
-  <!-- 快照載入按鈕 -->
-  <button onclick="refreshSnapshot()">重新載入快照</button>
-  <p id="timestamp">尚未載入</p>
-
-  <!-- 快照圖片嵌入 -->
-  <img id="snapshot" src="" alt="快照畫面">
-  <p id="tip">📌 若快照無法顯示，請確認已通過 Ngrok 安全頁或重新點擊上方連結</p>
+  <h1>Google Maps 測試</h1>
+  <div id="map"></div>
 
   <script>
-    const SNAPSHOT_URL = "https://aurous-johnsie-rippingly.ngrok-free.dev/snapshot";
-
-    function refreshSnapshot() {
-      const img = document.getElementById("snapshot");
-      img.src = SNAPSHOT_URL + "?t=" + new Date().getTime();  // 加時間戳避免快取
-      document.getElementById("timestamp").innerText = "更新時間：" + new Date().toLocaleString();
+    function initMap() {
+      new google.maps.Map(document.getElementById("map"), {
+        zoom: 7,
+        center: { lat: 23.5, lng: 121 } // 台灣中間
+      });
     }
+  </script>
 
-    // 預設載入一次快照
-    refreshSnapshot();
-
-    // 註冊 Service Worker（PWA 安裝條件）
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js")
-        .then(() => console.log("✅ Service Worker registered"))
-        .catch(err => console.error("❌ SW 註冊失敗", err));
-    }
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCmTe7_0UeGdg-DBDGlcBxG1cZN1rh-pEU&callback=initMap">
   </script>
 </body>
 </html>
