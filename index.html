@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <title>Google Maps 測試</title>
-  <style>#map { height: 80vh; width: 100%; }</style>
+  <style>
+    #map { height: 80vh; width: 100%; }
+  </style>
 </head>
 <body>
   <h1>Google Maps 測試</h1>
@@ -13,7 +15,7 @@
     function initMap() {
       new google.maps.Map(document.getElementById("map"), {
         zoom: 7,
-        center: { lat: 23.5, lng: 121 }
+        center: { lat: 23.5, lng: 121 } // 台灣中間
       });
     }
   </script>
