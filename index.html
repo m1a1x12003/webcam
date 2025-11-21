@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>RouteApp 整合版</title>
+  <title>最佳化多點導航計算程式</title>
   <style>
     body { font-family: Arial, sans-serif; }
     #map { height: 60vh; width: 100%; margin-top: 20px; }
@@ -14,15 +14,14 @@
   </style>
 </head>
 <body>
-  <h1>RouteApp 整合版</h1>
+  <h1>最佳化多點導航計算程式</h1>
   <textarea id="addresses" placeholder="每行一個地址或座標"></textarea>
   <div class="controls">
     <label><input type="radio" name="mode" value="gps" checked> 🚗 GPS 起始</label>
     <label><input type="radio" name="mode" value="first"> 📍 第一點起始</label>
     <br>
-    <label><input type="radio" name="opt" value="optimize" checked> 🔄 Google 最佳化</label>
-    <label><input type="radio" name="opt" value="strict"> ✅ 保證每點必到</label>
-    <label><input type="radio" name="opt" value="tsp"> 🧮 TSP 最近鄰演算法</label>
+    <label><input type="radio" name="opt" value="tsp" checked> 🧮 TSP 最近鄰演算法 (預設)</label>
+    <label><input type="radio" name="opt" value="optimize"> 🔄 Google 最佳化</label>
   </div>
   <button onclick="navigate()">開始導航</button>
   <div id="map"></div>
@@ -60,37 +59,28 @@
       if (optMode === 'tsp') {
         runTSP(origin, lines);
       } else {
-        runDirections(origin, lines, optMode);
+        runGoogleOptimize(origin, lines);
       }
     }
 
-    function runDirections(origin, lines, optMode) {
+    function runGoogleOptimize(origin, lines) {
       const destination = lines[lines.length - 1];
       const waypoints = lines.slice(1, -1).map(loc => ({ location: loc, stopover: true }));
 
       directionsService.route({
         origin, destination, waypoints,
-        optimizeWaypoints: (optMode === 'optimize'),
+        optimizeWaypoints: true,
         travelMode: google.maps.TravelMode.DRIVING
       }, (response, status) => {
         if (status === "OK") {
           directionsRenderer.setDirections(response);
 
+          const order = response.routes[0].waypoint_order;
+          const optimizedWaypoints = order.map(i => lines.slice(1, -1)[i]).map(encodeURIComponent).join("|");
           let gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+          if (optimizedWaypoints) gmapUrl += `&waypoints=${optimizedWaypoints}`;
 
-          if (optMode === 'optimize') {
-            const order = response.routes[0].waypoint_order;
-            const optimizedWaypoints = order.map(i => lines.slice(1, -1)[i]).map(encodeURIComponent).join("|");
-            if (optimizedWaypoints) gmapUrl += `&waypoints=${optimizedWaypoints}`;
-
-            document.getElementById("order").innerText = "Google 最佳化順序: " + [origin, ...order.map(i => lines.slice(1, -1)[i]), destination].join(" → ");
-          } else {
-            const orderedWaypoints = lines.slice(1, -1).map(encodeURIComponent).join("|");
-            if (orderedWaypoints) gmapUrl += `&waypoints=${orderedWaypoints}`;
-
-            document.getElementById("order").innerText = "固定順序: " + lines.join(" → ");
-          }
-
+          document.getElementById("order").innerText = "Google 最佳化順序: " + [origin, ...order.map(i => lines.slice(1, -1)[i]), destination].join(" → ");
           window.location.href = gmapUrl;
         } else {
           document.getElementById("error").innerText = "路線規劃失敗: " + status;
