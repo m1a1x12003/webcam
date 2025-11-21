@@ -2,30 +2,27 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>RouteApp 強化版</title>
+  <title>RouteApp 終極版</title>
   <style>
     body { font-family: Arial, sans-serif; }
-    #map { height: 70vh; width: 100%; margin-top: 20px; }
+    #map { height: 65vh; width: 100%; margin-top: 20px; }
     #error { color: red; font-weight: bold; margin-top: 10px; }
-    textarea {
-      width: 100%;
-      height: 200px; /* ✅ 輸入框更高 */
-      font-size: 16px;
-      padding: 10px;
-    }
-    button {
-      font-size: 18px; /* ✅ 按鈕更大 */
-      padding: 12px 20px;
-      margin: 10px 5px; /* ✅ 與地圖保持距離 */
-    }
+    textarea { width: 100%; height: 220px; font-size: 16px; padding: 10px; }
+    button { font-size: 18px; padding: 12px 20px; margin: 10px 5px; }
+    .controls { margin-bottom: 20px; }
   </style>
 </head>
 <body>
-  <h1>RouteApp 強化版 (GPS / 第一點起始)</h1>
+  <h1>RouteApp 終極版</h1>
   <textarea id="addresses" placeholder="每行一個地址或座標"></textarea>
-  <br>
-  <button onclick="navigate('gps')">🚗 GPS 起始</button>
-  <button onclick="navigate('first')">📍 第一點起始</button>
+  <div class="controls">
+    <label><input type="radio" name="mode" value="gps" checked> 🚗 GPS 起始</label>
+    <label><input type="radio" name="mode" value="first"> 📍 第一點起始</label>
+    <br>
+    <label><input type="radio" name="opt" value="optimize" checked> 🔄 最佳化路線</label>
+    <label><input type="radio" name="opt" value="strict"> ✅ 保證每點必到</label>
+  </div>
+  <button onclick="navigate()">開始導航</button>
   <div id="map"></div>
   <div id="error"></div>
 
@@ -34,56 +31,65 @@
 
     function initMap() {
       map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 7,
-        center: { lat: 23.5, lng: 121 }
+        zoom: 7, center: { lat: 23.5, lng: 121 }
       });
       directionsService = new google.maps.DirectionsService();
       directionsRenderer = new google.maps.DirectionsRenderer({ map });
     }
 
-    function navigate(mode) {
+    function navigate() {
       const lines = document.getElementById('addresses').value.trim().split(/\n+/);
       if (lines.length < 2) { alert("請至少輸入起點和終點"); return; }
 
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      const optMode = document.querySelector('input[name="opt"]:checked').value;
+
       let origin;
       const destination = lines[lines.length - 1];
-      const waypoints = lines.slice(1, -1).map(loc => ({ location: loc }));
+      const waypoints = lines.slice(1, -1).map(loc => ({ location: loc, stopover: true }));
 
       if (mode === 'gps') {
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(pos => {
             origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            calcRoute(origin, destination, waypoints, lines);
+            calcRoute(origin, destination, waypoints, lines, optMode);
           }, err => {
             alert("無法取得 GPS 位置，改用第一點起始");
             origin = lines[0];
-            calcRoute(origin, destination, waypoints, lines);
+            calcRoute(origin, destination, waypoints, lines, optMode);
           });
         } else {
           alert("此裝置不支援 GPS，改用第一點起始");
           origin = lines[0];
-          calcRoute(origin, destination, waypoints, lines);
+          calcRoute(origin, destination, waypoints, lines, optMode);
         }
       } else {
         origin = lines[0];
-        calcRoute(origin, destination, waypoints, lines);
+        calcRoute(origin, destination, waypoints, lines, optMode);
       }
     }
 
-    function calcRoute(origin, destination, waypoints, lines) {
+    function calcRoute(origin, destination, waypoints, lines, optMode) {
       directionsService.route({
         origin, destination, waypoints,
-        optimizeWaypoints: false, // 🚫 不最佳化，保證每個點都到
+        optimizeWaypoints: (optMode === 'optimize'), // 🔄 或 ✅
         travelMode: google.maps.TravelMode.DRIVING
       }, (response, status) => {
         if (status === "OK") {
           directionsRenderer.setDirections(response);
 
-          const orderedWaypoints = lines.slice(1, -1).map(encodeURIComponent).join("|");
           let gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(typeof origin === 'string' ? origin : origin.lat + ',' + origin.lng)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
-          if (orderedWaypoints) gmapUrl += `&waypoints=${orderedWaypoints}`;
 
-          window.location.href = gmapUrl; // ✅ 跳轉到 Google Maps App/網頁
+          if (optMode === 'optimize') {
+            const order = response.routes[0].waypoint_order;
+            const optimizedWaypoints = order.map(i => lines.slice(1, -1)[i]).map(encodeURIComponent).join("|");
+            if (optimizedWaypoints) gmapUrl += `&waypoints=${optimizedWaypoints}`;
+          } else {
+            const orderedWaypoints = lines.slice(1, -1).map(encodeURIComponent).join("|");
+            if (orderedWaypoints) gmapUrl += `&waypoints=${orderedWaypoints}`;
+          }
+
+          window.location.href = gmapUrl;
         } else {
           document.getElementById("error").innerText = "路線規劃失敗: " + status;
         }
