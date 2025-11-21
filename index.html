@@ -2,20 +2,32 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>TSP RouteApp</title>
+  <title>RouteApp 整合版</title>
   <style>
-    #map { height: 70vh; width: 100%; margin-top: 20px; }
+    body { font-family: Arial, sans-serif; }
+    #map { height: 60vh; width: 100%; margin-top: 20px; }
+    #error { color: red; font-weight: bold; margin-top: 10px; }
+    #order { margin-top: 15px; font-size: 16px; color: blue; }
     textarea { width: 100%; height: 220px; font-size: 16px; padding: 10px; }
     button { font-size: 18px; padding: 12px 20px; margin: 10px 5px; }
+    .controls { margin-bottom: 20px; }
   </style>
 </head>
 <body>
-  <h1>TSP RouteApp</h1>
+  <h1>RouteApp 整合版</h1>
   <textarea id="addresses" placeholder="每行一個地址或座標"></textarea>
-  <br>
-  <button onclick="navigate()">開始最佳化導航</button>
+  <div class="controls">
+    <label><input type="radio" name="mode" value="gps" checked> 🚗 GPS 起始</label>
+    <label><input type="radio" name="mode" value="first"> 📍 第一點起始</label>
+    <br>
+    <label><input type="radio" name="opt" value="optimize" checked> 🔄 Google 最佳化</label>
+    <label><input type="radio" name="opt" value="strict"> ✅ 保證每點必到</label>
+    <label><input type="radio" name="opt" value="tsp"> 🧮 TSP 最近鄰演算法</label>
+  </div>
+  <button onclick="navigate()">開始導航</button>
   <div id="map"></div>
   <div id="error"></div>
+  <div id="order"></div>
 
   <script>
     let map, directionsService, directionsRenderer;
@@ -32,9 +44,11 @@
       const lines = document.getElementById('addresses').value.trim().split(/\n+/);
       if (lines.length < 2) { alert("請至少輸入兩個地點"); return; }
 
-      // 加上 GPS 起點
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      const optMode = document.querySelector('input[name="opt"]:checked').value;
+
       let origin;
-      if (navigator.geolocation) {
+      if (mode === 'gps' && navigator.geolocation) {
         const pos = await new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject);
         });
@@ -43,9 +57,49 @@
         origin = lines[0];
       }
 
-      const allPoints = [origin, ...lines];
+      if (optMode === 'tsp') {
+        runTSP(origin, lines);
+      } else {
+        runDirections(origin, lines, optMode);
+      }
+    }
 
-      // 呼叫 Distance Matrix API
+    function runDirections(origin, lines, optMode) {
+      const destination = lines[lines.length - 1];
+      const waypoints = lines.slice(1, -1).map(loc => ({ location: loc, stopover: true }));
+
+      directionsService.route({
+        origin, destination, waypoints,
+        optimizeWaypoints: (optMode === 'optimize'),
+        travelMode: google.maps.TravelMode.DRIVING
+      }, (response, status) => {
+        if (status === "OK") {
+          directionsRenderer.setDirections(response);
+
+          let gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+
+          if (optMode === 'optimize') {
+            const order = response.routes[0].waypoint_order;
+            const optimizedWaypoints = order.map(i => lines.slice(1, -1)[i]).map(encodeURIComponent).join("|");
+            if (optimizedWaypoints) gmapUrl += `&waypoints=${optimizedWaypoints}`;
+
+            document.getElementById("order").innerText = "Google 最佳化順序: " + [origin, ...order.map(i => lines.slice(1, -1)[i]), destination].join(" → ");
+          } else {
+            const orderedWaypoints = lines.slice(1, -1).map(encodeURIComponent).join("|");
+            if (orderedWaypoints) gmapUrl += `&waypoints=${orderedWaypoints}`;
+
+            document.getElementById("order").innerText = "固定順序: " + lines.join(" → ");
+          }
+
+          window.location.href = gmapUrl;
+        } else {
+          document.getElementById("error").innerText = "路線規劃失敗: " + status;
+        }
+      });
+    }
+
+    function runTSP(origin, lines) {
+      const allPoints = [origin, ...lines];
       const service = new google.maps.DistanceMatrixService();
       service.getDistanceMatrix({
         origins: allPoints,
@@ -58,10 +112,8 @@
         }
 
         const matrix = response.rows.map(r => r.elements.map(e => e.distance.value));
-
-        // 最近鄰演算法
         let visited = Array(allPoints.length).fill(false);
-        visited[0] = true; // 起點
+        visited[0] = true;
         let order = [0];
         for (let step = 1; step < allPoints.length; step++) {
           let last = order[order.length - 1];
@@ -76,7 +128,6 @@
           order.push(nearest);
         }
 
-        // 轉成 Directions API 輸入
         const originPoint = allPoints[order[0]];
         const destinationPoint = allPoints[order[order.length - 1]];
         const waypoints = order.slice(1, -1).map(i => ({ location: allPoints[i], stopover: true }));
@@ -85,11 +136,18 @@
           origin: originPoint,
           destination: destinationPoint,
           waypoints,
-          optimizeWaypoints: false, // 我們自己排好了
+          optimizeWaypoints: false,
           travelMode: google.maps.TravelMode.DRIVING
         }, (res, stat) => {
           if (stat === "OK") {
             directionsRenderer.setDirections(res);
+
+            const orderedWaypoints = order.slice(1, -1).map(i => encodeURIComponent(allPoints[i])).join("|");
+            let gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originPoint)}&destination=${encodeURIComponent(destinationPoint)}&travelmode=driving`;
+            if (orderedWaypoints) gmapUrl += `&waypoints=${orderedWaypoints}`;
+
+            document.getElementById("order").innerText = "TSP 最近鄰順序: " + order.map(i => allPoints[i]).join(" → ");
+            window.location.href = gmapUrl;
           } else {
             document.getElementById("error").innerText = "路線規劃失敗: " + stat;
           }
