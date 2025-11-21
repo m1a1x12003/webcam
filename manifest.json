@@ -1,10 +1,10 @@
 {
-  "name": "到貨實況",
-  "short_name": "到貨實況",
+  "name": "最佳化多點導航計算程式",
+  "short_name": "導航計算",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#2196f3",
   "icons": [
     {
       "src": "icon-192.png",
@@ -18,6 +18,3 @@
     }
   ]
 }
-
-
-
