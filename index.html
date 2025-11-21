@@ -1,17 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
   <meta charset="utf-8">
   <title>最佳化多點導航計算程式</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2196f3">
   <style>
-    body { font-family: Arial, sans-serif; }
-    h1 { font-size: 28px; text-align: left; margin-bottom: 15px; } /* 標題靠左 */
-    #spacer { height: 300px; } /* ✅ 中間留空白延伸 */
-    #map { height: 40vh; width: 100%; margin-top: 15px; } /* 📱 地圖往下移 */
+    body { font-family: Arial, sans-serif; margin: 0; padding: 15px; }
+    h1 { font-size: 28px; text-align: left; margin-bottom: 15px; }
+    #spacer { height: 120px; } /* 中間留空白 */
+    #map { height: 40vh; width: 100%; margin-top: 15px; }
     #error { color: red; font-weight: bold; margin-top: 10px; }
     #order { margin-top: 15px; font-size: 18px; color: blue; }
-    textarea { width: 100%; height: 200px; font-size: 16px; padding: 10px; } /* ✅ 字體縮小兩碼 */
-    button { font-size: 22px; padding: 14px 24px; margin: 12px 6px; } /* 🔘 按鈕更大 */
+    textarea { width: 100%; height: 200px; font-size: 16px; padding: 10px; }
+    button { font-size: 22px; padding: 14px 24px; margin: 12px 6px; }
     .controls { margin-bottom: 20px; font-size: 18px; }
     label { margin-right: 15px; }
   </style>
@@ -23,19 +25,23 @@
     <label><input type="radio" name="mode" value="gps" checked> 🚗 GPS 起始</label>
     <label><input type="radio" name="mode" value="first"> 📍 第一點起始</label>
     <br>
-    <label><input type="radio" name="opt" value="tsp" checked> 🧮 TSP最近算法</label>
-    <label><input type="radio" name="opt" value="order"> 📍 按照順序前往</label>
+    <label><input type="radio" name="opt" value="tsp" checked> 🧮 TSP 最近鄰演算法 (預設)</label>
+    <label><input type="radio" name="opt" value="order"> 📍 按照輸入順序前往</label>
   </div>
   <button onclick="navigate()">開始導航</button>
 
-  <!-- ✅ 中間留空白 -->
   <div id="spacer"></div>
-
   <div id="map"></div>
   <div id="error"></div>
   <div id="order"></div>
 
   <script>
+    // ✅ 註冊 Service Worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js")
+        .then(() => console.log("Service Worker registered"));
+    }
+
     let map, directionsService, directionsRenderer;
 
     function initMap() {
@@ -71,11 +77,9 @@
     }
 
     function runOrder(origin, lines) {
-      // ✅ 在背景自動把第一行重複一次
       if (lines.length > 1) {
         lines = [lines[0], lines[0], ...lines.slice(1)];
       }
-
       const destination = lines[lines.length - 1];
       const waypoints = lines.slice(1, -1).map(loc => ({ location: loc, stopover: true }));
 
@@ -86,11 +90,9 @@
       }, (response, status) => {
         if (status === "OK") {
           directionsRenderer.setDirections(response);
-
           const orderedWaypoints = lines.slice(1, -1).map(encodeURIComponent).join("|");
           let gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
           if (orderedWaypoints) gmapUrl += `&waypoints=${orderedWaypoints}`;
-
           document.getElementById("order").innerText = "固定順序: " + lines.join(" → ");
           window.location.href = gmapUrl;
         } else {
@@ -111,7 +113,6 @@
           document.getElementById("error").innerText = "距離矩陣失敗: " + status;
           return;
         }
-
         const matrix = response.rows.map(r => r.elements.map(e => e.distance.value));
         let visited = Array(allPoints.length).fill(false);
         visited[0] = true;
@@ -128,7 +129,6 @@
           visited[nearest] = true;
           order.push(nearest);
         }
-
         const originPoint = allPoints[order[0]];
         const destinationPoint = allPoints[order[order.length - 1]];
         const waypoints = order.slice(1, -1).map(i => ({ location: allPoints[i], stopover: true }));
@@ -142,11 +142,9 @@
         }, (res, stat) => {
           if (stat === "OK") {
             directionsRenderer.setDirections(res);
-
             const orderedWaypoints = order.slice(1, -1).map(i => encodeURIComponent(allPoints[i])).join("|");
             let gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originPoint)}&destination=${encodeURIComponent(destinationPoint)}&travelmode=driving`;
             if (orderedWaypoints) gmapUrl += `&waypoints=${orderedWaypoints}`;
-
             document.getElementById("order").innerText = "TSP 最近鄰順序: " + order.map(i => allPoints[i]).join(" → ");
             window.location.href = gmapUrl;
           } else {
@@ -162,4 +160,3 @@
   </script>
 </body>
 </html>
-
