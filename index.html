@@ -8,8 +8,8 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 15px; }
     h1 { font-size: 28px; text-align: left; margin-bottom: 15px; }
-    #spacer { height: 120px; } /* 中間留空白 */
-    #map { height: 40vh; width: 100%; margin-top: 15px; }
+    #spacer { height: 120px; }
+    #map { height: 40vh; width: 100%; margin-top: 15px; display: none; } /* 隱藏地圖 */
     #error { color: red; font-weight: bold; margin-top: 10px; }
     #order { margin-top: 15px; font-size: 18px; color: blue; }
     textarea { width: 100%; height: 200px; font-size: 16px; padding: 10px; }
@@ -26,6 +26,7 @@
     <label><input type="radio" name="mode" value="first"> 📍 第一點起始</label>
     <br>
     <label><input type="radio" name="opt" value="tsp" checked> 🧮 TSP最近鄰演算法</label>
+    <label><input type="radio" name="opt" value="tsp-far"> 🧭 TSP最遠先到</label>
     <label><input type="radio" name="opt" value="order"> 📍 按照輸入順序前往</label>
   </div>
   <button onclick="navigate()">開始導航</button>
@@ -36,10 +37,8 @@
   <div id="order"></div>
 
   <script>
-    // ✅ 註冊 Service Worker
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js")
-        .then(() => console.log("Service Worker registered"));
+      navigator.serviceWorker.register("sw.js").then(() => console.log("Service Worker registered"));
     }
 
     let map, directionsService, directionsRenderer;
@@ -71,6 +70,8 @@
 
       if (optMode === 'tsp') {
         runTSP(origin, lines);
+      } else if (optMode === 'tsp-far') {
+        runTSPFar(origin, lines);
       } else {
         runOrder(origin, lines);
       }
@@ -83,22 +84,11 @@
       const destination = lines[lines.length - 1];
       const waypoints = lines.slice(1, -1).map(loc => ({ location: loc, stopover: true }));
 
-      directionsService.route({
-        origin, destination, waypoints,
-        optimizeWaypoints: false,
-        travelMode: google.maps.TravelMode.DRIVING
-      }, (response, status) => {
-        if (status === "OK") {
-          directionsRenderer.setDirections(response);
-          const orderedWaypoints = lines.slice(1, -1).map(encodeURIComponent).join("|");
-          let gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
-          if (orderedWaypoints) gmapUrl += `&waypoints=${orderedWaypoints}`;
-          document.getElementById("order").innerText = "固定順序: " + lines.join(" → ");
-          window.location.href = gmapUrl;
-        } else {
-          document.getElementById("error").innerText = "路線規劃失敗: " + status;
-        }
-      });
+      const gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving` +
+        (waypoints.length ? `&waypoints=${waypoints.map(w => encodeURIComponent(w.location)).join("|")}` : "");
+
+      document.getElementById("order").innerText = "固定順序: " + lines.join(" → ");
+      window.location.href = gmapUrl;
     }
 
     function runTSP(origin, lines) {
@@ -129,35 +119,49 @@
           visited[nearest] = true;
           order.push(nearest);
         }
+
         const originPoint = allPoints[order[0]];
         const destinationPoint = allPoints[order[order.length - 1]];
-        const waypoints = order.slice(1, -1).map(i => ({ location: allPoints[i], stopover: true }));
+        const orderedWaypoints = order.slice(1, -1).map(i => encodeURIComponent(allPoints[i])).join("|");
+        const gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originPoint)}&destination=${encodeURIComponent(destinationPoint)}&travelmode=driving` +
+          (orderedWaypoints ? `&waypoints=${orderedWaypoints}` : "");
 
-        directionsService.route({
-          origin: originPoint,
-          destination: destinationPoint,
-          waypoints,
-          optimizeWaypoints: false,
-          travelMode: google.maps.TravelMode.DRIVING
-        }, (res, stat) => {
-          if (stat === "OK") {
-            directionsRenderer.setDirections(res);
-            const orderedWaypoints = order.slice(1, -1).map(i => encodeURIComponent(allPoints[i])).join("|");
-            let gmapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(originPoint)}&destination=${encodeURIComponent(destinationPoint)}&travelmode=driving`;
-            if (orderedWaypoints) gmapUrl += `&waypoints=${orderedWaypoints}`;
-            document.getElementById("order").innerText = "TSP 最近鄰順序: " + order.map(i => allPoints[i]).join(" → ");
-            window.location.href = gmapUrl;
-          } else {
-            document.getElementById("error").innerText = "路線規劃失敗: " + stat;
-          }
-        });
+        document.getElementById("order").innerText = "TSP 最近鄰順序: " + order.map(i => allPoints[i]).join(" → ");
+        window.location.href = gmapUrl;
       });
     }
-  </script>
 
-  <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCmTe7_0UeGdg-DBDGlcBxG1cZN1rh-pEU&callback=initMap">
-  </script>
-</body>
-</html>
+    function runTSPFar(origin, lines) {
+      const service = new google.maps.DistanceMatrixService();
+      service.getDistanceMatrix({
+        origins: [origin],
+        destinations: lines,
+        travelMode: google.maps.TravelMode.DRIVING
+      }, (response, status) => {
+        if (status !== "OK") {
+          document.getElementById("error").innerText = "距離矩陣失敗: " + status;
+          return;
+        }
+        const distances = response.rows[0].elements.map(e => e.distance.value);
+        const farIndex = distances.indexOf(Math.max(...distances));
+        const farPoint = lines[farIndex];
+        const remaining = lines.filter((_, i) => i !== farIndex);
+        const allPoints = [farPoint, ...remaining];
 
+        const service2 = new google.maps.DistanceMatrixService();
+        service2.getDistanceMatrix({
+          origins: allPoints,
+          destinations: allPoints,
+          travelMode: google.maps.TravelMode.DRIVING
+        }, (res2, stat2) => {
+          if (stat2 !== "OK") {
+            document.getElementById("error").innerText = "距離矩陣失敗: " + stat2;
+            return;
+          }
+          const matrix = res2.rows.map(r => r.elements.map(e => e.distance.value));
+          let visited = Array(allPoints.length).fill(false);
+          visited[0] = true;
+          let order = [0];
+          for (let step = 1; step < allPoints.length; step++) {
+            let last = order[order.length - 1];
+            let nearest = -1, minDist = Infinity
